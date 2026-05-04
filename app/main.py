@@ -10,6 +10,7 @@ from app.services.adspower_client import adspower
 from app.services.logger import logger
 from app.services.automation import automation
 from app.services.antigravity_launcher import antigravity_launcher
+from app.api.v1 import router as v1_router
 from contextlib import asynccontextmanager
 
 @asynccontextmanager
@@ -18,6 +19,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="AntiProxy", lifespan=lifespan)
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+app.include_router(v1_router)
 templates = Jinja2Templates(directory="app/templates")
 
 def get_current_user(request: Request):
