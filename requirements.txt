@@ -1,0 +1,8 @@
+fastapi[all]
+sqlalchemy
+pydantic
+pydantic-settings
+playwright
+jinja2
+requests
+uvicorn
