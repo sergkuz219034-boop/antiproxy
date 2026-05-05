@@ -10,7 +10,6 @@ from app.services.adspower_client import adspower
 from app.services.logger import logger
 from app.services.automation import automation
 from app.services.antigravity_launcher import antigravity_launcher
-from app.api.v1 import router as v1_router
 from contextlib import asynccontextmanager
 
 @asynccontextmanager
@@ -19,7 +18,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="AntiProxy", lifespan=lifespan)
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
-app.include_router(v1_router)
 templates = Jinja2Templates(directory="app/templates")
 
 def get_current_user(request: Request):
@@ -230,26 +228,18 @@ def check_proxy(proxy_id: int, db: Session = Depends(get_db)):
     if not proxy:
         return {"status": "error", "message": "Proxy not found"}
     
-    # For SOCKS5, use socks5h to ensure DNS resolution happens through the proxy
-    protocol = proxy.protocol
-    if protocol == "socks5":
-        protocol = "socks5h"
-        
     proxies = {
-        "http": f"{protocol}://{proxy.username}:{proxy.password}@{proxy.host}:{proxy.port}" if proxy.username else f"{protocol}://{proxy.host}:{proxy.port}",
-        "https": f"{protocol}://{proxy.username}:{proxy.password}@{proxy.host}:{proxy.port}" if proxy.username else f"{protocol}://{proxy.host}:{proxy.port}"
+        "http": f"{proxy.protocol}://{proxy.username}:{proxy.password}@{proxy.host}:{proxy.port}" if proxy.username else f"{proxy.protocol}://{proxy.host}:{proxy.port}",
+        "https": f"{proxy.protocol}://{proxy.username}:{proxy.password}@{proxy.host}:{proxy.port}" if proxy.username else f"{proxy.protocol}://{proxy.host}:{proxy.port}"
     }
     
     try:
         import requests
-        # Using a reliable IP check service
-        res = requests.get("https://api.ipify.org?format=json", proxies=proxies, timeout=10)
+        res = requests.get("https://api.ipify.org?format=json", proxies=proxies, timeout=5)
         if res.ok:
             ip = res.json().get("ip")
             logger.info(f"Proxy {proxy.name} is working. IP: {ip}")
             return {"status": "ok", "ip": ip}
-        else:
-            return {"status": "error", "message": f"HTTP {res.status_code}"}
     except Exception as e:
         logger.error(f"Proxy {proxy.name} failed: {str(e)}")
         return {"status": "error", "message": str(e)}
